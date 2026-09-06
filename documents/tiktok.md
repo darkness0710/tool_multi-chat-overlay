@@ -16,29 +16,43 @@ next time.
 The **Community** plan is **$0 forever, 2,500 requests/day**, and only
 *opening a connection* spends one, so a streaming session uses a few dozen.
 
-**1. Create the file.** Next to `run.cmd`, make an empty text file named
-exactly `sign_key.txt`:
+**1. Open the file.** `sign_key.txt` already sits next to `run.cmd` — it ships
+with the repo holding two comment lines and one empty line:
 
 ```
-tool_multi-chat-overlay\
-  run.cmd
-  web.cmd
-  sign_key.txt      <- this one
+# EN: Paste your TikTok sign key on the line below. Get one free at https://www.eulerstream.com/dashboard
+# VI: Dán sign key TikTok vào dòng dưới. Lấy miễn phí ở https://www.eulerstream.com/dashboard
+
 ```
 
-(In Explorer make sure it isn't secretly `sign_key.txt.txt` — turn on
-*View → File name extensions*.)
+**2. Get the key.** Open <https://www.eulerstream.com/dashboard>, sign in, and
+copy your **API key** from the dashboard.
 
-**2. Get the key.** Open <https://www.eulerstream.com/dashboard>, sign in,
-and copy your **API key** from the dashboard.
+**3. Paste it in.** Put the key on the blank line under the comments and save.
+No quotes, no `KEY=`, nothing else. Then double-click `web.cmd` — it reads the
+file by itself. Lines starting with `#` and blank lines are skipped, so leave
+the comments where they are.
 
-**3. Paste it in.** Open `sign_key.txt`, paste the key as the **only line**,
-save. No quotes, no `KEY=`, nothing else. Then double-click `web.cmd` — it
-reads the file by itself.
+The file exists because the tool is meant to be double-clicked, and
+double-clicking gives you nowhere to type an argument.
 
-The file is **in `.gitignore`**, so it never lands in a commit. It exists
-because the tool is meant to be double-clicked, and double-clicking gives you
-nowhere to type an argument.
+### Keeping your key out of git
+
+`sign_key.txt` is **tracked**, so the template travels with the repo — which
+means your pasted key would otherwise show up in `git status` and could be
+committed. Run this once per clone, before pasting:
+
+```
+git update-index --skip-worktree sign_key.txt
+```
+
+That tells git to ignore edits to a file it tracks. `git status` then stays
+clean whatever the file holds, and the key cannot be committed by accident.
+To undo it — only needed to change the template itself:
+
+```
+git update-index --no-skip-worktree sign_key.txt
+```
 
 Two other ways, same effect:
 
@@ -106,28 +120,42 @@ server rejected WebSocket connection: HTTP 400
 Gói **Community** là **$0 vĩnh viễn, 2.500 request/ngày**, mà mỗi lần *mở kết
 nối* mới tốn một request, nên một buổi stream chỉ dùng vài chục.
 
-**1. Tạo file.** Cạnh `run.cmd`, tạo một file text rỗng tên đúng là
-`sign_key.txt`:
+**1. Mở file.** `sign_key.txt` có sẵn cạnh `run.cmd` — nó đi kèm repo, bên
+trong là hai dòng comment và một dòng trống:
 
 ```
-tool_multi-chat-overlay\
-  run.cmd
-  web.cmd
-  sign_key.txt      <- file nay
-```
+# EN: Paste your TikTok sign key on the line below. Get one free at https://www.eulerstream.com/dashboard
+# VI: Dán sign key TikTok vào dòng dưới. Lấy miễn phí ở https://www.eulerstream.com/dashboard
 
-(Trong Explorer coi chừng nó thành `sign_key.txt.txt` — bật
-*View → File name extensions* để thấy đuôi thật.)
+```
 
 **2. Lấy key.** Vào <https://www.eulerstream.com/dashboard>, đăng nhập, copy
 **API key** trong dashboard.
 
-**3. Dán vào.** Mở `sign_key.txt`, dán key thành **dòng duy nhất**, lưu lại.
-Không dấu nháy, không `KEY=`, không gì thêm. Rồi bấm đúp `web.cmd` — tool tự
-đọc file.
+**3. Dán vào.** Dán key vào dòng trống dưới phần comment rồi lưu. Không dấu
+nháy, không `KEY=`, không gì thêm. Rồi bấm đúp `web.cmd` — tool tự đọc file.
+Dòng bắt đầu bằng `#` và dòng trống đều bị bỏ qua, nên cứ để nguyên comment.
 
-File đó **nằm trong `.gitignore`** nên không bao giờ lọt vào commit. Chọn cách
-này vì tool được bấm đúp để chạy, mà bấm đúp thì không có chỗ gõ tham số.
+Chọn cách file vì tool được bấm đúp để chạy, mà bấm đúp thì không có chỗ gõ
+tham số.
+
+### Giữ key không lọt vào git
+
+`sign_key.txt` giờ **được track** để template đi theo repo — nghĩa là key bạn
+dán vào sẽ hiện trong `git status` và có thể bị commit nhầm. Chạy một lần sau
+khi clone, trước khi dán key:
+
+```
+git update-index --skip-worktree sign_key.txt
+```
+
+Lệnh này bảo git lờ đi mọi thay đổi của một file mà nó đang track. Từ đó
+`git status` luôn sạch bất kể trong file có gì, và key không thể bị commit
+nhầm. Muốn bỏ — chỉ cần khi sửa chính template:
+
+```
+git update-index --no-skip-worktree sign_key.txt
+```
 
 Hai cách khác, cùng tác dụng:
 

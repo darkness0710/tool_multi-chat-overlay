@@ -26,9 +26,9 @@ run.cmd --help                             everything else
 
 **TikTok drops out?** It needs a sign key — 3 steps:
 
-1. create an empty `sign_key.txt` next to `run.cmd`
+1. `git update-index --skip-worktree sign_key.txt` — once, so your key can't be committed
 2. copy your API key from <https://www.eulerstream.com/dashboard> (free plan)
-3. paste it as the only line in `sign_key.txt`, save, run `web.cmd`
+3. paste it on the blank line in `sign_key.txt`, save, run `web.cmd`
 
 More in [tiktok.md](documents/tiktok.md).
 
@@ -69,9 +69,9 @@ run.cmd --help                             các tuỳ chọn còn lại
 
 **TikTok hay đứt?** Cần sign key — 3 bước:
 
-1. tạo file rỗng `sign_key.txt` cạnh `run.cmd`
+1. `git update-index --skip-worktree sign_key.txt` — chạy một lần, để key không bị commit
 2. vào <https://www.eulerstream.com/dashboard> copy API key (gói miễn phí)
-3. dán key thành dòng duy nhất trong `sign_key.txt`, lưu, chạy `web.cmd`
+3. dán key vào dòng trống trong `sign_key.txt`, lưu, chạy `web.cmd`
 
 Chi tiết ở [tiktok.md](documents/tiktok.md).
 

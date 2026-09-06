@@ -449,9 +449,11 @@ def sign_key(given=None):
     """The TikTok sign key, from the flag, the environment, or a local file.
 
     A file because the tool is launched by double-clicking a .cmd, where there
-    is nowhere to type a flag -- and sign_key.txt is in .gitignore, so the key
-    stays out of every commit. It is a secret: it belongs next to the tool on
-    one machine, not in the source that gets pushed.
+    is nowhere to type a flag. sign_key.txt is tracked, but only as a template
+    saying where to get a key: the key itself is pasted in on each machine and
+    held back with `git update-index --skip-worktree`, so it never reaches a
+    commit. Comment and blank lines are skipped, which is what makes a file
+    that is both a template and a key store work.
     """
     if given:
         return given.strip()

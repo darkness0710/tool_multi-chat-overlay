@@ -9,7 +9,10 @@ __pycache__/
 *.txt
 !requirements.txt
 
-# The TikTok sign key. A secret, and this folder is pushed to a remote:
-# it lives in a file git never sees, never in the source.
-sign_key.txt
+# sign_key.txt is tracked as a template: two comment lines saying where to get
+# a key, and an empty line to paste it on. The key itself is a secret, so on
+# each machine it is pasted in locally and held back with
+#     git update-index --skip-worktree sign_key.txt
+# which makes git ignore edits to a file it tracks. See documents/tiktok.md.
+!sign_key.txt
 .env
