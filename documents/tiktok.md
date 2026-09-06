@@ -16,43 +16,38 @@ next time.
 The **Community** plan is **$0 forever, 2,500 requests/day**, and only
 *opening a connection* spends one, so a streaming session uses a few dozen.
 
-**1. Open the file.** `sign_key.txt` already sits next to `run.cmd` — it ships
-with the repo holding two comment lines and one empty line:
+**1. Shield the file.** `config.txt` ships with the repo, so anything you type
+into it would show up in `git status` and could be committed. Run this once
+per clone, **before** pasting anything:
 
 ```
-# EN: Paste your TikTok sign key on the line below. Get one free at https://www.eulerstream.com/dashboard
-# VI: Dán sign key TikTok vào dòng dưới. Lấy miễn phí ở https://www.eulerstream.com/dashboard
-
-```
-
-**2. Get the key.** Open <https://www.eulerstream.com/dashboard>, sign in, and
-copy your **API key** from the dashboard.
-
-**3. Paste it in.** Put the key on the blank line under the comments and save.
-No quotes, no `KEY=`, nothing else. Then double-click `web.cmd` — it reads the
-file by itself. Lines starting with `#` and blank lines are skipped, so leave
-the comments where they are.
-
-The file exists because the tool is meant to be double-clicked, and
-double-clicking gives you nowhere to type an argument.
-
-### Keeping your key out of git
-
-`sign_key.txt` is **tracked**, so the template travels with the repo — which
-means your pasted key would otherwise show up in `git status` and could be
-committed. Run this once per clone, before pasting:
-
-```
-git update-index --skip-worktree sign_key.txt
+git update-index --skip-worktree config.txt
 ```
 
 That tells git to ignore edits to a file it tracks. `git status` then stays
 clean whatever the file holds, and the key cannot be committed by accident.
-To undo it — only needed to change the template itself:
+To undo it — only needed when changing the template itself:
+`git update-index --no-skip-worktree config.txt`.
+
+**2. Get the key.** Open <https://www.eulerstream.com/dashboard>, sign in, and
+copy your **API key** from the dashboard.
+
+**3. Paste it in.** Open `config.txt` next to `run.cmd` and put the key after
+`EULERSTREAM_API_KEY=`, then save:
 
 ```
-git update-index --no-skip-worktree sign_key.txt
+EULERSTREAM_API_KEY=xyz
+YOUTUBE=https://www.youtube.com/@TieulinhHOTA
+TIKTOK=https://www.tiktok.com/@tieulinhhota/live
 ```
+
+No quotes, no spaces around `=`. `YOUTUBE` and `TIKTOK` are optional — leave
+them empty and the built-in defaults are used. `#` lines and blank lines are
+skipped, so leave the comments where they are. Then double-click `web.cmd` —
+it reads the file by itself.
+
+A file rather than flags because the tool is meant to be double-clicked, and
+double-clicking gives you nowhere to type an argument.
 
 Two other ways, same effect:
 
@@ -63,7 +58,7 @@ setx TIKTOK_SIGN_API_KEY "YOUR_KEY"
 
 (`setx` only takes effect in command windows opened afterwards.)
 
-Priority: command-line argument → environment variable → `sign_key.txt`.
+Priority: command-line argument → environment variable → `config.txt`.
 
 At startup the tool prints the **last four characters**, so you can tell which
 key is in use without exposing it in a screenshot or a pasted log:
@@ -74,7 +69,7 @@ TikTok : using sign key (…Yzlk)
 
 > **The key is a secret.** Don't commit it, don't paste it into a chat or an
 > issue. If it leaks, create a new one on the dashboard and replace the
-> contents of `sign_key.txt`.
+> value in `config.txt`.
 
 Plainly: I **have not verified** that a key makes it stable, because getting
 one belongs to your account. The plumbing is there and uses the library's own
@@ -120,42 +115,37 @@ server rejected WebSocket connection: HTTP 400
 Gói **Community** là **$0 vĩnh viễn, 2.500 request/ngày**, mà mỗi lần *mở kết
 nối* mới tốn một request, nên một buổi stream chỉ dùng vài chục.
 
-**1. Mở file.** `sign_key.txt` có sẵn cạnh `run.cmd` — nó đi kèm repo, bên
-trong là hai dòng comment và một dòng trống:
+**1. Chắn file lại.** `config.txt` đi kèm repo, nên mọi thứ bạn gõ vào đó sẽ
+hiện trong `git status` và có thể bị commit nhầm. Chạy một lần sau khi clone,
+**trước khi** dán bất cứ gì:
 
 ```
-# EN: Paste your TikTok sign key on the line below. Get one free at https://www.eulerstream.com/dashboard
-# VI: Dán sign key TikTok vào dòng dưới. Lấy miễn phí ở https://www.eulerstream.com/dashboard
-
-```
-
-**2. Lấy key.** Vào <https://www.eulerstream.com/dashboard>, đăng nhập, copy
-**API key** trong dashboard.
-
-**3. Dán vào.** Dán key vào dòng trống dưới phần comment rồi lưu. Không dấu
-nháy, không `KEY=`, không gì thêm. Rồi bấm đúp `web.cmd` — tool tự đọc file.
-Dòng bắt đầu bằng `#` và dòng trống đều bị bỏ qua, nên cứ để nguyên comment.
-
-Chọn cách file vì tool được bấm đúp để chạy, mà bấm đúp thì không có chỗ gõ
-tham số.
-
-### Giữ key không lọt vào git
-
-`sign_key.txt` giờ **được track** để template đi theo repo — nghĩa là key bạn
-dán vào sẽ hiện trong `git status` và có thể bị commit nhầm. Chạy một lần sau
-khi clone, trước khi dán key:
-
-```
-git update-index --skip-worktree sign_key.txt
+git update-index --skip-worktree config.txt
 ```
 
 Lệnh này bảo git lờ đi mọi thay đổi của một file mà nó đang track. Từ đó
 `git status` luôn sạch bất kể trong file có gì, và key không thể bị commit
 nhầm. Muốn bỏ — chỉ cần khi sửa chính template:
+`git update-index --no-skip-worktree config.txt`.
+
+**2. Lấy key.** Vào <https://www.eulerstream.com/dashboard>, đăng nhập, copy
+**API key** trong dashboard.
+
+**3. Dán vào.** Mở `config.txt` cạnh `run.cmd`, dán key vào sau
+`EULERSTREAM_API_KEY=` rồi lưu:
 
 ```
-git update-index --no-skip-worktree sign_key.txt
+EULERSTREAM_API_KEY=xyz
+YOUTUBE=https://www.youtube.com/@TieulinhHOTA
+TIKTOK=https://www.tiktok.com/@tieulinhhota/live
 ```
+
+Không dấu nháy, không có khoảng trắng quanh dấu `=`. `YOUTUBE` và `TIKTOK` là
+tuỳ chọn — để trống thì dùng mặc định có sẵn. Dòng `#` và dòng trống đều bị bỏ
+qua, nên cứ để nguyên comment. Rồi bấm đúp `web.cmd` — tool tự đọc file.
+
+Chọn cách file thay vì tham số vì tool được bấm đúp để chạy, mà bấm đúp thì
+không có chỗ gõ.
 
 Hai cách khác, cùng tác dụng:
 
@@ -166,7 +156,7 @@ setx TIKTOK_SIGN_API_KEY "KEY_CUA_BAN"
 
 (`setx` chỉ có tác dụng ở cửa sổ dòng lệnh mở sau đó)
 
-Thứ tự ưu tiên: tham số dòng lệnh → biến môi trường → `sign_key.txt`.
+Thứ tự ưu tiên: tham số dòng lệnh → biến môi trường → `config.txt`.
 
 Khi chạy, tool in **bốn ký tự cuối** của key để bạn biết nó đang dùng key nào
 mà không lộ cả key ra ảnh chụp màn hình hay log dán đi:
@@ -176,7 +166,7 @@ TikTok : dùng sign key (…Yzlk)
 ```
 
 > **Key là bí mật.** Đừng commit, đừng dán vào chat hay issue. Lỡ lộ thì vào
-> dashboard tạo key mới và thay nội dung `sign_key.txt` — key cũ bỏ đi.
+> dashboard tạo key mới và thay giá trị trong `config.txt` — key cũ bỏ đi.
 
 Nói thẳng: tôi **chưa kiểm chứng được** rằng key làm nó ổn định, vì lấy key là
 việc thuộc tài khoản của bạn. Phần cắm key thì đã có và chạy đúng đường của

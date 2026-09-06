@@ -9,10 +9,10 @@ __pycache__/
 *.txt
 !requirements.txt
 
-# sign_key.txt is tracked as a template: two comment lines saying where to get
-# a key, and an empty line to paste it on. The key itself is a secret, so on
-# each machine it is pasted in locally and held back with
-#     git update-index --skip-worktree sign_key.txt
-# which makes git ignore edits to a file it tracks. See documents/tiktok.md.
-!sign_key.txt
+# config.txt is tracked as a template: the three setting names with empty
+# values, and comments saying where a sign key comes from. A filled-in copy
+# holds a secret, so on each machine the edit is held back with
+#     git update-index --skip-worktree config.txt
+# which makes git ignore changes to a file it tracks. See documents/tiktok.md.
+!config.txt
 .env

@@ -12,6 +12,34 @@ the live video itself, and waits if the channel isn't live yet.
 | **`run.cmd`** | same feed, terminal only |
 | **`Install.cmd`** | build / repair the environment (`run.cmd` does it itself the first time) |
 
+## Set it up: `config.txt`
+
+Everything you'd normally type lives in **`config.txt`**, next to `run.cmd` —
+because the tool is meant to be double-clicked, and double-clicking gives you
+nowhere to type. Fill in the lines and save:
+
+```
+EULERSTREAM_API_KEY=xyz
+YOUTUBE=https://www.youtube.com/@TieulinhHOTA
+TIKTOK=https://www.tiktok.com/@tieulinhhota/live
+```
+
+Leave a line empty and the built-in default is used. `#` lines and blank lines
+are ignored.
+
+**First, once per clone** — so your key can never be committed:
+
+```
+git update-index --skip-worktree config.txt
+```
+
+The key is free: <https://www.eulerstream.com/dashboard>. Without it TikTok
+drops out every few minutes — see [tiktok.md](documents/tiktok.md).
+
+## Command line
+
+Flags beat `config.txt` when you want a one-off:
+
 ```
 run.cmd --youtube @AiDo --tiktok @AiDo     other channels
 run.cmd --youtube https://youtu.be/XXXX    one exact video, no searching
@@ -24,19 +52,11 @@ run.cmd --help                             everything else
 **OBS:** Sources → + → Browser, URL `http://127.0.0.1:8770/`, Custom CSS
 **empty**. About 480 × 900.
 
-**TikTok drops out?** It needs a sign key — 3 steps:
-
-1. `git update-index --skip-worktree sign_key.txt` — once, so your key can't be committed
-2. copy your API key from <https://www.eulerstream.com/dashboard> (free plan)
-3. paste it on the blank line in `sign_key.txt`, save, run `web.cmd`
-
-More in [tiktok.md](documents/tiktok.md).
-
 ## Details
 
 - [documents/install.md](documents/install.md) — install, common errors
 - [documents/overlay.md](documents/overlay.md) — OBS, URL options (`?plate`, `?fade`, `?mark`, `?yt`, `?tt`)
-- [documents/tiktok.md](documents/tiktok.md) — why TikTok drops, sign key
+- [documents/tiktok.md](documents/tiktok.md) — `config.txt`, the sign key, why TikTok drops
 - [documents/notes.md](documents/notes.md) — design decisions, and what not to trust it with
 
 ---
@@ -55,6 +75,32 @@ tool tự tìm kênh đang live ở video nào, chưa live thì chờ.
 | **`run.cmd`** | y hệt, nhưng chỉ hiện trong cửa sổ dòng lệnh |
 | **`Install.cmd`** | dựng / sửa môi trường (`run.cmd` tự làm lần đầu) |
 
+## Cài đặt: `config.txt`
+
+Mọi thứ bình thường phải gõ tay đều nằm trong **`config.txt`** cạnh `run.cmd` —
+vì tool được bấm đúp để chạy, mà bấm đúp thì không có chỗ gõ. Điền vào rồi lưu:
+
+```
+EULERSTREAM_API_KEY=xyz
+YOUTUBE=https://www.youtube.com/@TieulinhHOTA
+TIKTOK=https://www.tiktok.com/@tieulinhhota/live
+```
+
+Để trống dòng nào thì dùng mặc định có sẵn. Dòng `#` và dòng trống bị bỏ qua.
+
+**Chạy một lần trước tiên** — để key không bao giờ bị commit:
+
+```
+git update-index --skip-worktree config.txt
+```
+
+Key miễn phí: <https://www.eulerstream.com/dashboard>. Không có key thì TikTok
+cứ vài phút lại đứt — xem [tiktok.md](documents/tiktok.md).
+
+## Dòng lệnh
+
+Tham số dòng lệnh thắng `config.txt`, dùng khi cần đổi tạm một lần:
+
 ```
 run.cmd --youtube @AiDo --tiktok @AiDo     kênh khác
 run.cmd --youtube https://youtu.be/XXXX    một video cụ thể, không tự tìm
@@ -67,17 +113,9 @@ run.cmd --help                             các tuỳ chọn còn lại
 **OBS:** Sources → + → Browser, URL `http://127.0.0.1:8770/`, Custom CSS
 **để trống**. Rộng ~480, cao ~900.
 
-**TikTok hay đứt?** Cần sign key — 3 bước:
-
-1. `git update-index --skip-worktree sign_key.txt` — chạy một lần, để key không bị commit
-2. vào <https://www.eulerstream.com/dashboard> copy API key (gói miễn phí)
-3. dán key vào dòng trống trong `sign_key.txt`, lưu, chạy `web.cmd`
-
-Chi tiết ở [tiktok.md](documents/tiktok.md).
-
 ## Chi tiết
 
 - [documents/install.md](documents/install.md) — cài đặt, lỗi hay gặp
 - [documents/overlay.md](documents/overlay.md) — OBS, tham số URL (`?plate`, `?fade`, `?mark`, `?yt`, `?tt`)
-- [documents/tiktok.md](documents/tiktok.md) — vì sao TikTok đứt, sign key
+- [documents/tiktok.md](documents/tiktok.md) — `config.txt`, sign key, vì sao TikTok đứt
 - [documents/notes.md](documents/notes.md) — các quyết định thiết kế, và điều không nên tin

@@ -46,9 +46,11 @@ import sys
 import threading
 import time
 
-# The two accounts this was written for, so it runs with no arguments.
+# The two accounts this was written for, so it runs with no arguments at all.
+# config.txt overrides both; these are only what is left when it says nothing.
 YOUTUBE = "https://www.youtube.com/@TieulinhHOTA"
 TIKTOK = "https://www.tiktok.com/@tieulinhhota/live"
+CONFIG_FILE = "config.txt"
 POLL = 60.0                     # seconds between "is anybody live yet" checks
 
 RESET = "\033[0m"
@@ -445,43 +447,65 @@ def tiktok_reader(unique_id, out, stop, poll, ws_timeout=30.0):
 
 
 # ------------------------------------------------------------------ main ----
-def sign_key(given=None):
-    """The TikTok sign key, from the flag, the environment, or a local file.
+def config():
+    """NAME=value settings read from config.txt, next to this file.
 
-    A file because the tool is launched by double-clicking a .cmd, where there
-    is nowhere to type a flag. sign_key.txt is tracked, but only as a template
-    saying where to get a key: the key itself is pasted in on each machine and
-    held back with `git update-index --skip-worktree`, so it never reaches a
-    commit. Comment and blank lines are skipped, which is what makes a file
-    that is both a template and a key store work.
+    A file rather than three flags because the tool is launched by
+    double-clicking a .cmd, where there is nowhere to type anything. git
+    tracks it as a template -- the three names with empty values -- and each
+    machine fills it in and holds that edit back with
+    `git update-index --skip-worktree config.txt`, so a sign key never
+    reaches a commit.
+
+    Blank and # lines are skipped, which is what lets one file be both the
+    template and the filled-in copy. A line with no '=' is skipped rather
+    than guessed at, and an empty value counts as "not set" so that leaving
+    YOUTUBE= alone falls through to the built-in default.
     """
-    if given:
-        return given.strip()
-    from_env = os.environ.get("TIKTOK_SIGN_API_KEY")
-    if from_env:
-        return from_env.strip()
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "sign_key.txt")
+                        CONFIG_FILE)
+    found = {}
     try:
         with open(path, encoding="utf-8") as fh:
             for line in fh:
                 line = line.strip()
-                if line and not line.startswith("#"):
-                    return line
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                name, _, value = line.partition("=")
+                value = value.strip()
+                if value:
+                    found[name.strip().upper()] = value
     except OSError:
         pass
-    return None
+    return found
+
+
+def setting(conf, name, given=None, env=None, fallback=None):
+    """One setting: the flag wins, then the environment, then config.txt.
+
+    The flag is first because someone who typed it meant it; config.txt is
+    last because it is the standing answer, not the one for this run.
+    """
+    if given:
+        return given.strip()
+    if env:
+        from_env = os.environ.get(env)
+        if from_env:
+            return from_env.strip()
+    return conf.get(name) or fallback
 
 
 def main():
     ap = argparse.ArgumentParser(
         description="Gộp chat YouTube live + TikTok LIVE vào một cửa sổ. "
                     "Đưa kênh, không cần link video: tool tự tìm live.")
-    ap.add_argument("--youtube", default=YOUTUBE, metavar="KÊNH|VIDEO",
+    ap.add_argument("--youtube", default=None, metavar="KÊNH|VIDEO",
                     help="kênh (@tên hoặc link kênh) để tự tìm live, "
-                         "hoặc link/id một video cụ thể")
-    ap.add_argument("--tiktok", default=TIKTOK, metavar="KÊNH",
-                    help="@tên hoặc link TikTok LIVE")
+                         "hoặc link/id một video cụ thể; không có thì lấy "
+                         "YOUTUBE trong config.txt")
+    ap.add_argument("--tiktok", default=None, metavar="KÊNH",
+                    help="@tên hoặc link TikTok LIVE; không có thì lấy "
+                         "TIKTOK trong config.txt")
     ap.add_argument("--only", choices=("yt", "tt"), help="chỉ chạy một bên")
     ap.add_argument("--poll", type=float, default=POLL, metavar="GIÂY",
                     help=f"bao lâu kiểm tra lại khi chưa live (mặc định {POLL:.0f})")
@@ -493,8 +517,8 @@ def main():
     ap.add_argument("--sign-key", default=None, metavar="KEY",
                     help="API key cho sign server của TikTokLive; không có thì "
                          "chạy ẩn danh và bị giới hạn theo IP. Cũng đọc từ "
-                         "sign_key.txt hoặc biến môi trường "
-                         "TIKTOK_SIGN_API_KEY")
+                         "EULERSTREAM_API_KEY trong config.txt hoặc biến môi "
+                         "trường TIKTOK_SIGN_API_KEY")
     ap.add_argument("--log", metavar="FILE", help="ghi thêm ra file (không màu)")
     ap.add_argument("--no-colour", action="store_true")
     args = ap.parse_args()
@@ -506,7 +530,9 @@ def main():
             pass
     colour = _ansi() and not args.no_colour
 
-    key = sign_key(args.sign_key)
+    conf = config()
+    key = setting(conf, "EULERSTREAM_API_KEY", args.sign_key,
+                  env="TIKTOK_SIGN_API_KEY")
     if key:
         # TikTokLive cannot open the Webcast socket without a signature, and
         # unkeyed signatures are rationed per IP -- which is what a burst of
@@ -522,13 +548,16 @@ def main():
             pass
     poll = max(10.0, args.poll)                 # politeness floor
 
-    kind, value = youtube_target(args.youtube)
-    user = tiktok_user(args.tiktok)
+    want_yt = setting(conf, "YOUTUBE", args.youtube, fallback=YOUTUBE)
+    want_tt = setting(conf, "TIKTOK", args.tiktok, fallback=TIKTOK)
+
+    kind, value = youtube_target(want_yt)
+    user = tiktok_user(want_tt)
     if args.only != "tt" and not value:
-        print(f"không hiểu địa chỉ YouTube: {args.youtube}")
+        print(f"không hiểu địa chỉ YouTube: {want_yt}")
         return 2
     if args.only != "yt" and not user:
-        print(f"không hiểu địa chỉ TikTok: {args.tiktok}")
+        print(f"không hiểu địa chỉ TikTok: {want_tt}")
         return 2
 
     hub = None

@@ -1,0 +1,11 @@
+# EN: Get a free TikTok sign key at https://www.eulerstream.com/dashboard, then fill in the lines below.
+# VI: Lấy sign key TikTok miễn phí ở https://www.eulerstream.com/dashboard, rồi điền vào các dòng dưới.
+#
+# Sample / Ví dụ:
+#   EULERSTREAM_API_KEY=xyz
+#   YOUTUBE=https://www.youtube.com/@TieulinhHOTA
+#   TIKTOK=https://www.tiktok.com/@tieulinhhota/live
+
+EULERSTREAM_API_KEY=
+YOUTUBE=
+TIKTOK=
