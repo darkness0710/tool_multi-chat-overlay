@@ -1,0 +1,16 @@
+# These install into others/chat_merge/.venv, not the project's venv. See the
+# comment at the top of run.cmd for why they are kept apart.
+
+# TikTok LIVE chat, by account name, no login of any kind.
+TikTokLive
+
+# Finding which video a YouTube channel is live on right now: one request to
+# the /streams tab, which carries live_status. No API key and no quota, unlike
+# the Data API's search.list.
+yt-dlp
+
+# YouTube live chat without an API key. merge_chat.py tries pytchat first and
+# falls back to chat-downloader, so either one alone is enough -- both are
+# listed because when one goes stale the other is the way out.
+pytchat
+chat-downloader

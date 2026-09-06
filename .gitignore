@@ -1,0 +1,15 @@
+# This folder is meant to be liftable into a repository of its own, so it
+# carries the ignores it needs rather than relying on the one at the root of
+# the repository it currently sits in.
+.venv/
+__pycache__/
+*.pyc
+
+# --log writes here
+*.txt
+!requirements.txt
+
+# The TikTok sign key. A secret, and this folder is pushed to a remote:
+# it lives in a file git never sees, never in the source.
+sign_key.txt
+.env
