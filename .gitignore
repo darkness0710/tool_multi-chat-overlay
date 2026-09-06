@@ -9,6 +9,11 @@ __pycache__/
 *.txt
 !requirements.txt
 
+# debug.log and the one previous run kept beside it. Written every run, so it
+# would otherwise show up dirty on every single `git status`.
+*.log
+*.log.1
+
 # config.txt is tracked as a template: the three setting names with empty
 # values, and comments saying where a sign key comes from. A filled-in copy
 # holds a secret, so on each machine the edit is held back with

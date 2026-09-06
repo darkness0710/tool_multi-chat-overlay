@@ -52,6 +52,14 @@ run.cmd --help                             everything else
 **OBS:** Sources → + → Browser, URL `http://127.0.0.1:8770/`, Custom CSS
 **empty**. About 480 × 900.
 
+## Something broke?
+
+Send **`debug.log`** — it is written next to `run.cmd` on every run, no flag
+needed, and the run before is kept as `debug.log.1`. It holds the tool's own
+events, full tracebacks, and which library versions were loaded. It holds **no
+chat messages and no sign key** — it is meant to be sent to someone. If you do
+want a transcript, that is `run.cmd --log chat.txt`, a separate file.
+
 ## Details
 
 - [documents/install.md](documents/install.md) — install, common errors
@@ -112,6 +120,14 @@ run.cmd --help                             các tuỳ chọn còn lại
 
 **OBS:** Sources → + → Browser, URL `http://127.0.0.1:8770/`, Custom CSS
 **để trống**. Rộng ~480, cao ~900.
+
+## Hỏng cái gì đó?
+
+Gửi file **`debug.log`** — nó tự ghi cạnh `run.cmd` mỗi lần chạy, không cần
+bật gì, và lần chạy trước được giữ ở `debug.log.1`. Trong đó có sự kiện của
+tool, traceback đầy đủ, và phiên bản thư viện đang dùng. **Không có nội dung
+chat, không có sign key** — file này sinh ra để gửi cho người khác. Muốn lưu
+lại nội dung chat thì dùng `run.cmd --log chat.txt`, là file riêng.
 
 ## Chi tiết
 

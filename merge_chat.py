@@ -46,12 +46,15 @@ import sys
 import threading
 import time
 
+import debuglog
+
 # The two accounts this was written for, so it runs with no arguments at all.
 # config.txt overrides both; these are only what is left when it says nothing.
 YOUTUBE = "https://www.youtube.com/@TieulinhHOTA"
 TIKTOK = "https://www.tiktok.com/@tieulinhhota/live"
 CONFIG_FILE = "config.txt"
 SIGN_KEY_ATTR = "tiktok_sign_api_key"   # on TikTokLive's WebDefaults
+DEBUG_LOG = "debug.log"         # written every run, for reporting faults
 POLL = 60.0                     # seconds between "is anybody live yet" checks
 
 RESET = "\033[0m"
@@ -140,7 +143,13 @@ def why(exc, limit=90):
 
 
 def note(out, where, text):
-    """The tool saying something about a source, rather than a viewer."""
+    """The tool saying something about a source, rather than a viewer.
+
+    Everything the tool says about itself goes through here, and nothing a
+    viewer typed ever does -- messages take out.put(Line(...)) directly. That
+    split is what lets the debug log record every event and no chat.
+    """
+    debuglog.event(TAG.get(where, "··"), text)
     out.put(Line("--", TAG.get(where, "··"), text))
 
 
@@ -209,6 +218,7 @@ def _youtube_chat(video_id, out, stop):
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exc:
+            debuglog.exception("yt/pytchat", exc)
             note(out, "yt", f"pytchat hỏng ({why(exc)}); thử chat-downloader")
 
     try:
@@ -237,6 +247,7 @@ def _youtube_chat(video_id, out, stop):
     except (KeyboardInterrupt, SystemExit):
         raise
     except BaseException as exc:
+        debuglog.exception("yt/chat-downloader", exc)
         note(out, "yt", f"dừng: {why(exc, 120)}")
 
 
@@ -438,6 +449,7 @@ def tiktok_reader(unique_id, out, stop, poll, ws_timeout=30.0):
             # as asyncio.CancelledError, which does NOT inherit from
             # Exception, so the narrower catch let it kill the thread with a
             # traceback and take the TikTok half down for good.
+            debuglog.exception("tt", exc)
             note(out, "tt", f"không nối được: {tt_reason(exc)}")
         fails = 0 if connected["yes"] else fails + 1
         wait = min(poll * 2 ** min(fails - 1, 4), 900.0) if fails else poll
@@ -504,12 +516,15 @@ def apply_sign_key(key):
         print(f"TikTok : sign key BỊ BỎ QUA -- bản TikTokLive này không còn "
               f"WebDefaults.{SIGN_KEY_ATTR}, nên chạy như ẩn danh và sẽ bị "
               f"giới hạn theo IP. Xem requirements.txt")
+        debuglog.write(f"sign key KHÔNG nạp được: WebDefaults thiếu "
+                       f"{SIGN_KEY_ATTR} (TikTokLive quá mới?)")
         return False
     setattr(WebDefaults, SIGN_KEY_ATTR, key)
     HAVE_KEY = True
     # Four characters is enough to tell two keys apart and not enough to be
     # one: this line ends up in screenshots and pasted logs.
     print(f"TikTok : dùng sign key (…{key[-4:]})")
+    debuglog.write("sign key đã nạp vào TikTokLive")
     return True
 
 
@@ -566,20 +581,34 @@ def main():
     conf = config()
     key = setting(conf, "EULERSTREAM_API_KEY", args.sign_key,
                   env="TIKTOK_SIGN_API_KEY")
+    want_yt = setting(conf, "YOUTUBE", args.youtube, fallback=YOUTUBE)
+    want_tt = setting(conf, "TIKTOK", args.tiktok, fallback=TIKTOK)
+
+    # Opened before the first thing that can fail, so the first failure is
+    # already in it. Someone who cannot read a console cannot be asked to turn
+    # logging on after the fault they are reporting.
+    here = os.path.dirname(os.path.abspath(__file__))
+    logging = debuglog.start(os.path.join(here, DEBUG_LOG),
+                             want_yt, want_tt, key)
+    debuglog.install_hooks()
+    if logging:
+        print(f"Log     : {DEBUG_LOG}  (gửi file này khi báo lỗi)")
+
     if key:
         apply_sign_key(key)
     poll = max(10.0, args.poll)                 # politeness floor
-
-    want_yt = setting(conf, "YOUTUBE", args.youtube, fallback=YOUTUBE)
-    want_tt = setting(conf, "TIKTOK", args.tiktok, fallback=TIKTOK)
 
     kind, value = youtube_target(want_yt)
     user = tiktok_user(want_tt)
     if args.only != "tt" and not value:
         print(f"không hiểu địa chỉ YouTube: {want_yt}")
+        debuglog.write(f"không hiểu địa chỉ YouTube: {want_yt}")
+        debuglog.close()
         return 2
     if args.only != "yt" and not user:
         print(f"không hiểu địa chỉ TikTok: {want_tt}")
+        debuglog.write(f"không hiểu địa chỉ TikTok: {want_tt}")
+        debuglog.close()
         return 2
 
     hub = None
@@ -608,6 +637,10 @@ def main():
         t.start()
 
     log = open(args.log, "a", encoding="utf-8") if args.log else None
+    # Counts, never content: "did anything arrive at all" is the first
+    # question an empty overlay raises, and it is answerable without
+    # quoting a single viewer.
+    seen = {"YT": 0, "TT": 0}
     print("Ctrl+C để dừng.\n")
     try:
         while True:
@@ -616,8 +649,11 @@ def main():
             except queue.Empty:
                 if not any(t.is_alive() for t in threads):
                     print("\ncả hai nguồn đã dừng.")
+                    debuglog.write("cả hai nguồn đã dừng")
                     break
                 continue
+            if line.where != "--":
+                seen[TAG[line.where]] += 1
             clock = time.strftime("%H:%M:%S", time.localtime(line.at))
             plain = f"{clock}  [{line.who if line.where == '--' else TAG[line.where]}] " \
                     f"{line.what if line.where == '--' else line.who + ': ' + line.what}"
@@ -642,8 +678,10 @@ def main():
                 log.flush()
     except KeyboardInterrupt:
         print("\ndừng.")
+        debuglog.write("người dùng dừng bằng Ctrl+C")
     finally:
         stop.set()
+        debuglog.close(seen)
         if log:
             log.close()
     return 0
