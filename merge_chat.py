@@ -51,6 +51,7 @@ import time
 YOUTUBE = "https://www.youtube.com/@TieulinhHOTA"
 TIKTOK = "https://www.tiktok.com/@tieulinhhota/live"
 CONFIG_FILE = "config.txt"
+SIGN_KEY_ATTR = "tiktok_sign_api_key"   # on TikTokLive's WebDefaults
 POLL = 60.0                     # seconds between "is anybody live yet" checks
 
 RESET = "\033[0m"
@@ -480,6 +481,38 @@ def config():
     return found
 
 
+def apply_sign_key(key):
+    """Hand the key to TikTokLive, or say out loud that it did not land.
+
+    TikTokLive cannot open the Webcast socket without a signature, and
+    unkeyed signatures are rationed per IP -- which is what a burst of HTTP
+    400s on the handshake looks like from here.
+
+    The hasattr check is the point of this function. WebDefaults is a plain
+    class, so assigning a name it does not have would create that name and
+    succeed: if a later TikTokLive renames the field, the key would be
+    swallowed in silence while the tool still announced one, and the rationing
+    that followed would look like anything but the real cause. Measured on
+    7.0.0 -- setting a misspelt attribute raises nothing whatsoever.
+    """
+    global HAVE_KEY
+    try:
+        from TikTokLive.client.web.web_settings import WebDefaults
+    except ImportError:
+        return False
+    if not hasattr(WebDefaults, SIGN_KEY_ATTR):
+        print(f"TikTok : sign key BỊ BỎ QUA -- bản TikTokLive này không còn "
+              f"WebDefaults.{SIGN_KEY_ATTR}, nên chạy như ẩn danh và sẽ bị "
+              f"giới hạn theo IP. Xem requirements.txt")
+        return False
+    setattr(WebDefaults, SIGN_KEY_ATTR, key)
+    HAVE_KEY = True
+    # Four characters is enough to tell two keys apart and not enough to be
+    # one: this line ends up in screenshots and pasted logs.
+    print(f"TikTok : dùng sign key (…{key[-4:]})")
+    return True
+
+
 def setting(conf, name, given=None, env=None, fallback=None):
     """One setting: the flag wins, then the environment, then config.txt.
 
@@ -534,18 +567,7 @@ def main():
     key = setting(conf, "EULERSTREAM_API_KEY", args.sign_key,
                   env="TIKTOK_SIGN_API_KEY")
     if key:
-        # TikTokLive cannot open the Webcast socket without a signature, and
-        # unkeyed signatures are rationed per IP -- which is what a burst of
-        # HTTP 400s on the handshake looks like from here.
-        try:
-            from TikTokLive.client.web.web_settings import WebDefaults
-            WebDefaults.tiktok_sign_api_key = key
-            globals()["HAVE_KEY"] = True
-            # Four characters is enough to tell two keys apart and not enough
-            # to be one: this line ends up in screenshots and pasted logs.
-            print(f"TikTok : dùng sign key (…{key[-4:]})")
-        except ImportError:
-            pass
+        apply_sign_key(key)
     poll = max(10.0, args.poll)                 # politeness floor
 
     want_yt = setting(conf, "YOUTUBE", args.youtube, fallback=YOUTUBE)

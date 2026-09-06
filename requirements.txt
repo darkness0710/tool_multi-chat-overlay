@@ -1,16 +1,31 @@
-# These install into others/chat_merge/.venv, not the project's venv. See the
+# These install into this folder's own .venv, not the project's. See the
 # comment at the top of run.cmd for why they are kept apart.
+#
+# Majors are capped, patches and minors are not. These are scraping libraries:
+# when a platform changes something the ONLY fix is a newer version, so an
+# exact pin would freeze the tool on a broken one. A major bump is where the
+# renames live, and merge_chat.py leans on names that a rename would take
+# away quietly -- see apply_sign_key() and TT_REASON.
 
 # TikTok LIVE chat, by account name, no login of any kind.
-TikTokLive
+# Used from it: TikTokLiveClient(unique_id=, ws_kwargs=), the Comment /
+# Connect / Disconnect events, WebDefaults.tiktok_sign_api_key, and the names
+# of seven exception classes read as strings in TT_REASON.
+TikTokLive>=7,<8
 
 # Finding which video a YouTube channel is live on right now: one request to
 # the /streams tab, which carries live_status. No API key and no quota, unlike
 # the Data API's search.list.
+#
+# Deliberately uncapped. yt-dlp is versioned by date and each release IS the
+# repair for whatever YouTube changed last week; pinning it is pinning the
+# breakage.
 yt-dlp
 
 # YouTube live chat without an API key. merge_chat.py tries pytchat first and
 # falls back to chat-downloader, so either one alone is enough -- both are
 # listed because when one goes stale the other is the way out.
-pytchat
-chat-downloader
+#
+# Capped at the minor: both are 0.x, where the minor is the major.
+pytchat>=0.5,<0.6
+chat-downloader>=0.2,<0.3
