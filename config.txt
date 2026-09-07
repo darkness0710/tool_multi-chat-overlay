@@ -1,9 +1,13 @@
-# Settings for this machine. NAME=value, one per line; blank lines and lines
-# starting with # are ignored, and an empty value means "use the default".
+# Settings for this machine. One NAME=value per line.
+# Lines starting with # are ignored. An empty value means "use the default".
 #
-# Get a free TikTok sign key at https://www.eulerstream.com/dashboard.
+#   EULERSTREAM_API_KEY   free TikTok sign key, from
+#                         https://www.eulerstream.com/dashboard
+#   YOUTUBE               channel link, or a link to one video
+#   TIKTOK                channel link
+#   LANG                  language of the messages: en or vi
 #
-# Sample:
+# Example:
 #   EULERSTREAM_API_KEY=xyz
 #   YOUTUBE=https://www.youtube.com/@TieulinhHOTA
 #   TIKTOK=https://www.tiktok.com/@tieulinhhota/live
@@ -12,11 +16,4 @@
 EULERSTREAM_API_KEY=
 YOUTUBE=
 TIKTOK=
-
-# Language of the messages: en (default) or vi.
-# Ngon ngu thong bao: en (mac dinh) hoac vi.
-#
-# The environment variable for the same thing is CHAT_MERGE_LANG, not LANG --
-# LANG already means a locale on the machines this may one day run on, and
-# quietly inheriting one of those would be a surprise.
 LANG=en
