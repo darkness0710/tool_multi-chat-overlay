@@ -47,6 +47,8 @@ import threading
 import time
 
 import debuglog
+import i18n
+from i18n import t   # every user-facing string comes from the catalogue
 
 # The two accounts this was written for, so it runs with no arguments at all.
 # config.txt overrides both; these are only what is left when it says nothing.
@@ -159,7 +161,7 @@ def find_live(channel_url, out):
     try:
         import yt_dlp
     except ImportError:
-        note(out, "yt", "chưa cài yt-dlp.  pip install yt-dlp")
+        note(out, "yt", t("yt.no_ytdlp"))
         return None, None
 
     url = channel_url.rstrip("/")
@@ -173,7 +175,7 @@ def find_live(channel_url, out):
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
     except Exception as exc:
-        note(out, "yt", f"không đọc được kênh: {why(exc, 120)}")
+        note(out, "yt", t("yt.channel_unreadable", why=why(exc, 120)))
         return None, None
     for entry in info.get("entries") or []:
         if entry and entry.get("live_status") == "is_live":
@@ -219,13 +221,12 @@ def _youtube_chat(video_id, out, stop):
             raise
         except BaseException as exc:
             debuglog.exception("yt/pytchat", exc)
-            note(out, "yt", f"pytchat hỏng ({why(exc)}); thử chat-downloader")
+            note(out, "yt", t("yt.pytchat_broke", why=why(exc)))
 
     try:
         from chat_downloader import ChatDownloader
     except ImportError:
-        note(out, "yt", "chưa cài thư viện đọc chat.  "
-                        "pip install pytchat   (hoặc chat-downloader)")
+        note(out, "yt", t("yt.no_chat_lib"))
         stop.wait(30)
         return
 
@@ -248,7 +249,7 @@ def _youtube_chat(video_id, out, stop):
         raise
     except BaseException as exc:
         debuglog.exception("yt/chat-downloader", exc)
-        note(out, "yt", f"dừng: {why(exc, 120)}")
+        note(out, "yt", t("yt.stopped", why=why(exc, 120)))
 
 
 def message_parts(message_ex):
@@ -288,17 +289,18 @@ def message_parts(message_ex):
 def youtube_reader(kind, value, out, stop, poll):
     while not stop.is_set():
         if kind == "video":
-            note(out, "yt", f"đọc chat của video {value}")
+            note(out, "yt", t("yt.reading_video", value=value))
             _youtube_chat(value, out, stop)
-            note(out, "yt", "chat đã đóng")
+            note(out, "yt", t("yt.chat_closed"))
             return                              # a fixed video does not return
         vid, title = find_live(value, out)
         if vid:
-            note(out, "yt", f"đang live: {title[:60]}  ({vid})")
+            note(out, "yt", t("yt.live", title=title[:60], vid=vid))
             _youtube_chat(vid, out, stop)
-            note(out, "yt", f"chat đã đóng; {poll:.0f}s nữa tìm lại")
+            note(out, "yt", t("yt.chat_closed_retry",
+                              poll=f"{poll:.0f}"))
         else:
-            note(out, "yt", f"kênh chưa live; thử lại sau {poll:.0f}s")
+            note(out, "yt", t("yt.not_live", poll=f"{poll:.0f}"))
         if stop.wait(poll):
             return
 
@@ -308,13 +310,13 @@ def youtube_reader(kind, value, out, stop, poll):
 # waited out, one is fixed with a key, one cannot be fixed from here at all.
 # Lumping them into "could not connect" threw that away.
 TT_REASON = {
-    "UserOfflineError": "chưa live",
-    "UserNotFoundError": "không có tài khoản này",
-    "AgeRestrictedError": "live giới hạn tuổi, cần phiên đăng nhập",
-    "SignatureRateLimitError": "hết hạn mức của sign server",
-    "SignAPIError": "sign server trả lỗi",
-    "WebsocketURLMissingError": "sign server không trả về URL websocket",
-    "WebcastBlocked200Error": "TikTok chặn kết nối từ IP này",
+    "UserOfflineError": "tt.reason.offline",
+    "UserNotFoundError": "tt.reason.no_user",
+    "AgeRestrictedError": "tt.reason.age",
+    "SignatureRateLimitError": "tt.reason.rate",
+    "SignAPIError": "tt.reason.sign_api",
+    "WebsocketURLMissingError": "tt.reason.no_ws",
+    "WebcastBlocked200Error": "tt.reason.blocked",
 }
 
 
@@ -329,15 +331,14 @@ def tt_reason(exc):
     """What a TikTok failure actually was, in words worth acting on."""
     named = TT_REASON.get(type(exc).__name__)
     if named:
-        return named
+        return t(named)
     text = why(exc, 120)
     if "HTTP 400" in text:
         # TikTok refused the signed url. Without a key that is usually the
         # anonymous signature allowance; with one it is TikTok's own edge,
         # and waiting is the only thing that has ever helped.
-        return text + (" -- TikTok từ chối chữ ký; để nó tự lùi và nối lại, "
-                       "đừng khởi động lại liên tục" if HAVE_KEY
-                       else " -- chữ ký ẩn danh bị từ chối, xem --sign-key")
+        return text + t("tt.sig_refused_key" if HAVE_KEY
+                        else "tt.sig_refused_anon")
     return text
 
 
@@ -354,7 +355,7 @@ def tiktok_reader(unique_id, out, stop, poll, ws_timeout=30.0):
         from TikTokLive.events import CommentEvent, ConnectEvent, \
             DisconnectEvent
     except ImportError:
-        note(out, "tt", "chưa cài TikTokLive.  pip install TikTokLive")
+        note(out, "tt", t("tt.no_lib"))
         return
 
     import asyncio
@@ -380,25 +381,25 @@ def tiktok_reader(unique_id, out, stop, poll, ws_timeout=30.0):
             ws_kwargs={"open_timeout": ws_timeout})
         try:
             if not asyncio.run(client.is_live()):
-                note(out, "tt", f"@{unique_id} chưa live; "
-                                f"thử lại sau {poll:.0f}s")
+                note(out, "tt", t("tt.not_live", user=unique_id,
+                                  poll=f"{poll:.0f}"))
                 if stop.wait(poll):
                     return
                 continue
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exc:
-            note(out, "tt", f"không hỏi được trạng thái live "
-                            f"({tt_reason(exc)})")
+            note(out, "tt", t("tt.status_failed",
+                              reason=tt_reason(exc)))
 
         @client.on(ConnectEvent)
         async def _connected(_event):
             connected["yes"] = True
-            note(out, "tt", f"đang live: @{unique_id}")
+            note(out, "tt", t("tt.live", user=unique_id))
 
         @client.on(DisconnectEvent)
         async def _gone(_event):
-            note(out, "tt", "mất kết nối")
+            note(out, "tt", t("tt.disconnected"))
 
         recent = {}                             # key -> when it arrived
 
@@ -450,11 +451,12 @@ def tiktok_reader(unique_id, out, stop, poll, ws_timeout=30.0):
             # Exception, so the narrower catch let it kill the thread with a
             # traceback and take the TikTok half down for good.
             debuglog.exception("tt", exc)
-            note(out, "tt", f"không nối được: {tt_reason(exc)}")
+            note(out, "tt", t("tt.connect_failed", reason=tt_reason(exc)))
         fails = 0 if connected["yes"] else fails + 1
         wait = min(poll * 2 ** min(fails - 1, 4), 900.0) if fails else poll
-        note(out, "tt", f"thử lại sau {wait:.0f}s"
-                        + (f" (hỏng {fails} lần liên tiếp)" if fails > 1 else ""))
+        note(out, "tt", t("tt.retry", wait=f"{wait:.0f}")
+                        + (t("tt.retry_fails", fails=fails)
+                           if fails > 1 else ""))
         if stop.wait(wait):
             return
 
@@ -513,18 +515,15 @@ def apply_sign_key(key):
     except ImportError:
         return False
     if not hasattr(WebDefaults, SIGN_KEY_ATTR):
-        print(f"TikTok : sign key BỊ BỎ QUA -- bản TikTokLive này không còn "
-              f"WebDefaults.{SIGN_KEY_ATTR}, nên chạy như ẩn danh và sẽ bị "
-              f"giới hạn theo IP. Xem requirements.txt")
-        debuglog.write(f"sign key KHÔNG nạp được: WebDefaults thiếu "
-                       f"{SIGN_KEY_ATTR} (TikTokLive quá mới?)")
+        print(t("sign.ignored", attr=SIGN_KEY_ATTR))
+        debuglog.write(t("sign.ignored_log", attr=SIGN_KEY_ATTR))
         return False
     setattr(WebDefaults, SIGN_KEY_ATTR, key)
     HAVE_KEY = True
     # Four characters is enough to tell two keys apart and not enough to be
     # one: this line ends up in screenshots and pasted logs.
-    print(f"TikTok : dùng sign key (…{key[-4:]})")
-    debuglog.write("sign key đã nạp vào TikTokLive")
+    print(t("sign.loaded", tail=key[-4:]))
+    debuglog.write(t("sign.loaded_log"))
     return True
 
 
@@ -544,30 +543,36 @@ def setting(conf, name, given=None, env=None, fallback=None):
 
 
 def main():
-    ap = argparse.ArgumentParser(
-        description="Gộp chat YouTube live + TikTok LIVE vào một cửa sổ. "
-                    "Đưa kênh, không cần link video: tool tự tìm live.")
-    ap.add_argument("--youtube", default=None, metavar="KÊNH|VIDEO",
-                    help="kênh (@tên hoặc link kênh) để tự tìm live, "
-                         "hoặc link/id một video cụ thể; không có thì lấy "
-                         "YOUTUBE trong config.txt")
-    ap.add_argument("--tiktok", default=None, metavar="KÊNH",
-                    help="@tên hoặc link TikTok LIVE; không có thì lấy "
-                         "TIKTOK trong config.txt")
-    ap.add_argument("--only", choices=("yt", "tt"), help="chỉ chạy một bên")
-    ap.add_argument("--poll", type=float, default=POLL, metavar="GIÂY",
-                    help=f"bao lâu kiểm tra lại khi chưa live (mặc định {POLL:.0f})")
+    # The language has to be settled before the parser is built, because
+    # --help is one of the things that must come out in it. A throwaway
+    # parser lifts --lang off the command line without touching anything
+    # else; config.txt and the environment answer when the flag is absent,
+    # and config.txt is the only one of the three that a person who
+    # double-clicks web.cmd can reach.
+    pre = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    pre.add_argument("--lang")
+    conf = config()
+    i18n.use(setting(conf, "LANG", pre.parse_known_args()[0].lang,
+                     env=i18n.ENV, fallback=i18n.DEFAULT))
+
+    ap = argparse.ArgumentParser(description=t("arg.description"))
+    ap.add_argument("--youtube", default=None,
+                    metavar=t("arg.channel_or_video"),
+                    help=t("arg.youtube"))
+    ap.add_argument("--tiktok", default=None, metavar=t("arg.channel"),
+                    help=t("arg.tiktok"))
+    ap.add_argument("--only", choices=("yt", "tt"), help=t("arg.only"))
+    ap.add_argument("--poll", type=float, default=POLL,
+                    metavar=t("arg.seconds"),
+                    help=t("arg.poll", poll=f"{POLL:.0f}"))
     ap.add_argument("--web", nargs="?", type=int, const=8770, default=None,
-                    metavar="PORT",
-                    help="mở overlay cho OBS ở 127.0.0.1:PORT (mặc định 8770)")
-    ap.add_argument("--ws-timeout", type=float, default=30.0, metavar="GIÂY",
-                    help="chờ bắt tay websocket TikTok (mặc định 30)")
+                    metavar="PORT", help=t("arg.web"))
+    ap.add_argument("--ws-timeout", type=float, default=30.0,
+                    metavar=t("arg.seconds"), help=t("arg.ws_timeout"))
     ap.add_argument("--sign-key", default=None, metavar="KEY",
-                    help="API key cho sign server của TikTokLive; không có thì "
-                         "chạy ẩn danh và bị giới hạn theo IP. Cũng đọc từ "
-                         "EULERSTREAM_API_KEY trong config.txt hoặc biến môi "
-                         "trường TIKTOK_SIGN_API_KEY")
-    ap.add_argument("--log", metavar="FILE", help="ghi thêm ra file (không màu)")
+                    help=t("arg.sign_key"))
+    ap.add_argument("--log", metavar="FILE", help=t("arg.log"))
+    ap.add_argument("--lang", choices=i18n.LANGS, help=t("arg.lang"))
     ap.add_argument("--no-colour", action="store_true")
     args = ap.parse_args()
 
@@ -578,7 +583,6 @@ def main():
             pass
     colour = _ansi() and not args.no_colour
 
-    conf = config()
     key = setting(conf, "EULERSTREAM_API_KEY", args.sign_key,
                   env="TIKTOK_SIGN_API_KEY")
     want_yt = setting(conf, "YOUTUBE", args.youtube, fallback=YOUTUBE)
@@ -592,7 +596,7 @@ def main():
                              want_yt, want_tt, key)
     debuglog.install_hooks()
     if logging:
-        print(f"Log     : {DEBUG_LOG}  (gửi file này khi báo lỗi)")
+        print(t("cli.log", path=DEBUG_LOG))
 
     if key:
         apply_sign_key(key)
@@ -601,13 +605,13 @@ def main():
     kind, value = youtube_target(want_yt)
     user = tiktok_user(want_tt)
     if args.only != "tt" and not value:
-        print(f"không hiểu địa chỉ YouTube: {want_yt}")
-        debuglog.write(f"không hiểu địa chỉ YouTube: {want_yt}")
+        print(t("cli.bad_youtube", value=want_yt))
+        debuglog.write(t("cli.bad_youtube", value=want_yt))
         debuglog.close()
         return 2
     if args.only != "yt" and not user:
-        print(f"không hiểu địa chỉ TikTok: {want_tt}")
-        debuglog.write(f"không hiểu địa chỉ TikTok: {want_tt}")
+        print(t("cli.bad_tiktok", value=want_tt))
+        debuglog.write(t("cli.bad_tiktok", value=want_tt))
         debuglog.close()
         return 2
 
@@ -616,40 +620,41 @@ def main():
         import overlay
         hub = overlay.Hub()
         url = overlay.serve(hub, port=args.web)
-        print(f"Overlay : {url}")
-        print("          OBS > Sources > + > Browser > URL o tren, "
-              "bo trong Custom CSS.")
+        print(t("cli.overlay", url=url))
+        print(t("cli.overlay_obs"))
+        print(t("cli.overlay_zoom"))
 
     out = queue.Queue()
     stop = threading.Event()
     threads = []
     if args.only != "tt":
-        print(f"YouTube: {value}" + ("" if kind == "video" else "  (tự tìm live)"))
+        print(t("cli.youtube", value=value)
+              + ("" if kind == "video" else t("cli.auto_find")))
         threads.append(threading.Thread(
             target=youtube_reader, args=(kind, value, out, stop, poll),
             daemon=True))
     if args.only != "yt":
-        print(f"TikTok : @{user}  (tự tìm live)")
+        print(t("cli.tiktok", user=user) + t("cli.auto_find"))
         threads.append(threading.Thread(
             target=tiktok_reader,
             args=(user, out, stop, poll, args.ws_timeout), daemon=True))
-    for t in threads:
-        t.start()
+    for thread in threads:
+        thread.start()
 
     log = open(args.log, "a", encoding="utf-8") if args.log else None
     # Counts, never content: "did anything arrive at all" is the first
     # question an empty overlay raises, and it is answerable without
     # quoting a single viewer.
     seen = {"YT": 0, "TT": 0}
-    print("Ctrl+C để dừng.\n")
+    print(t("cli.stop_hint") + "\n")
     try:
         while True:
             try:
                 line = out.get(timeout=0.5)
             except queue.Empty:
-                if not any(t.is_alive() for t in threads):
-                    print("\ncả hai nguồn đã dừng.")
-                    debuglog.write("cả hai nguồn đã dừng")
+                if not any(th.is_alive() for th in threads):
+                    print("\n" + t("cli.both_stopped"))
+                    debuglog.write(t("cli.both_stopped"))
                     break
                 continue
             if line.where != "--":
@@ -677,8 +682,8 @@ def main():
                 log.write(plain + "\n")
                 log.flush()
     except KeyboardInterrupt:
-        print("\ndừng.")
-        debuglog.write("người dùng dừng bằng Ctrl+C")
+        print("\n" + t("cli.stopped"))
+        debuglog.write(t("cli.stopped_log"))
     finally:
         stop.set()
         debuglog.close(seen)

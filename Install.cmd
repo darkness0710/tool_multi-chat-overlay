@@ -19,28 +19,28 @@ if exist "%PY%" goto :install
 goto :make
 
 :fresh
-echo Xoa moi truong cu...
+echo Removing the old environment...
 if exist "%VENV%" rmdir /s /q "%VENV%"
 goto :make
 
 :make
 echo.
-echo [1/3] Tim Python -- may chua co thi tu cai, khong can Administrator
+echo [1/3] Find Python -- installs one if this machine has none, no Administrator needed
 rem get_python.ps1 prints one path and nothing else; everything it has to say
 rem goes to the console instead, so this reads the path cleanly.
 set BASEPY=
 for /f "usebackq delims=" %%P in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0get_python.ps1"`) do set BASEPY=%%P
 if not defined BASEPY (
   echo.
-  echo   Khong co Python de dung -- xem thong bao o tren.
+  echo   No usable Python -- see the messages above.
   goto :fail
 )
-echo   dung: %BASEPY%
-echo   tao moi truong rieng trong %CD%\%VENV%
+echo   using: %BASEPY%
+echo   building its own environment in %CD%\%VENV%
 "%BASEPY%" -m venv "%VENV%"
 if not exist "%PY%" (
   echo.
-  echo   Tao venv that bai voi %BASEPY%
+  echo   Creating the venv with %BASEPY% failed
   goto :fail
 )
 
@@ -50,9 +50,9 @@ rem pip bao mot loi giai phu thuoc kho hieu o buoc sau.
 "%PY%" -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)"
 if errorlevel 1 (
   echo.
-  echo   Python cua may nay qua cu:
+  echo   This machine's Python is too old:
   "%PY%" -c "import sys; print('     ', sys.version.split()[0])"
-  echo   Can 3.10 tro len. Tai ban moi o python.org roi chay:  Install.cmd -f
+  echo   3.10 or newer is needed. Get one from python.org, then run:  Install.cmd -f
   goto :fail
 )
 
@@ -66,13 +66,13 @@ rem directory" on that one file.
 "%PY%" -c "import os,sys; n=len(os.path.abspath('.')); sys.exit(0 if n<=100 else 1)"
 if errorlevel 1 (
   echo.
-  echo   Duong dan thu muc nay qua dai cho Windows:
-  "%PY%" -c "import os; p=os.path.abspath('.'); print('     ', len(p), 'ky tu:', p)"
-  echo   Toi da 100 ky tu. Cach nhanh nhat: chuyen ca thu muc chat_merge sang
-  echo   cho ngan hon, vi du  C:\chat_merge  roi chay lai Install.cmd
+  echo   The path to this folder is too long for Windows:
+  "%PY%" -c "import os; p=os.path.abspath('.'); print('     ', len(p), 'characters:', p)"
+  echo   100 characters at most. Quickest fix: move the whole chat_merge
+  echo   folder somewhere shorter, say  C:\chat_merge  and run Install.cmd again
   echo.
-  echo   Cach khac ^(can quyen Administrator^): bat Long Path cua Windows,
-  echo   xem https://pip.pypa.io/warnings/enable-long-paths
+  echo   The other way ^(needs Administrator^): turn on Windows long paths,
+  echo   see https://pip.pypa.io/warnings/enable-long-paths
   goto :fail
 )
 goto :install
@@ -80,46 +80,46 @@ goto :install
 :upgrade
 if not exist "%PY%" goto :make
 echo.
-echo [1/3] Moi truong da co, se cap nhat thu vien len ban moi nhat
+echo [1/3] Environment is already there; updating the libraries
 set UP=-U
 
 :install
 echo.
-echo [2/3] Cai thu vien %UP%
+echo [2/3] Install libraries %UP%
 "%PY%" -m pip install --disable-pip-version-check -q -U pip
 "%PY%" -m pip install --disable-pip-version-check %UP% -r requirements.txt
 if errorlevel 1 (
   echo.
-  echo   pip bao loi. Neu la "Access is denied" thi thuong la trinh quet virus
-  echo   giu file ngay luc pip ghi -- chay lai Install.cmd mot lan nua.
+  echo   pip reported an error. "Access is denied" is usually a virus scanner
+  echo   holding a file open as pip writes it -- run Install.cmd once more.
   goto :fail
 )
 
 :check
 echo.
-echo [3/3] Kiem tra
-"%PY%" -c "import TikTokLive, yt_dlp, pytchat, chat_downloader; print('   thu vien: ok')"
+echo [3/3] Check
+"%PY%" -c "import TikTokLive, yt_dlp, pytchat, chat_downloader; print('   libraries: ok')"
 if errorlevel 1 (
-  echo   Thieu thu vien. Thu:  Install.cmd -f
+  echo   Libraries are missing. Try:  Install.cmd -f
   goto :fail
 )
 "%PY%" -m pip check
 if errorlevel 1 (
-  echo   pip check bao phu thuoc lech nhau. Thu:  Install.cmd -f
+  echo   pip check reports mismatched dependencies. Try:  Install.cmd -f
   goto :fail
 )
 
 echo.
-echo Xong. Chay tiep:
-echo    web.cmd     overlay cho OBS o http://127.0.0.1:8770/
-echo    run.cmd     chi hien trong cua so dong lenh
+echo Done. What to run next:
+echo    web.cmd     the OBS overlay, at http://127.0.0.1:8770/
+echo    run.cmd     the console window only
 echo.
 pause
 exit /b 0
 
 :fail
 echo.
-echo Chua cai xong. Xem documents\install.md de biet them.
+echo Not installed yet. See documents\install.md for more.
 echo.
 pause
 exit /b 1

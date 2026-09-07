@@ -56,11 +56,11 @@ function Get-Usable {
 $have = Get-Usable
 if ($have) { Write-Output $have; exit 0 }
 
-Say "Chua co Python 3.10+. Se cai tu dong, khong can quyen Administrator."
+Say "No Python 3.10+ here. Installing one, no Administrator needed."
 
 # --- winget, per user
 if (Get-Command winget -ErrorAction SilentlyContinue) {
-    Say "thu winget install Python.Python.$WANT --scope user"
+    Say "trying winget install Python.Python.$WANT --scope user"
     # Out-Host: winget is chatty, and its chatter must not reach the caller
     # that is reading stdout for a path.
     & winget install --id "Python.Python.$WANT" --exact --source winget `
@@ -68,22 +68,22 @@ if (Get-Command winget -ErrorAction SilentlyContinue) {
         --accept-package-agreements --accept-source-agreements 2>&1 | Out-Host
     $have = Get-Usable
     if ($have) { Write-Output $have; exit 0 }
-    Say "winget khong cai duoc (exit $LASTEXITCODE), thu python.org"
+    Say "winget could not install it (exit $LASTEXITCODE), trying python.org"
 } else {
-    Say "may nay khong co winget, thu python.org"
+    Say "no winget on this machine, trying python.org"
 }
 
 # --- python.org, per user
 try {
     # PowerShell 5.1 still offers TLS 1.0 first, which python.org refuses.
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Say "hoi python.org ban $WANT moi nhat"
+    Say "asking python.org for the newest $WANT"
     $index = Invoke-WebRequest "https://www.python.org/ftp/python/" -UseBasicParsing -TimeoutSec 60
     $versions = @($index.Links.href |
         Where-Object { $_ -match "^$([regex]::Escape($WANT))\.(\d+)/$" } |
         ForEach-Object { $_.TrimEnd('/') } |
         Sort-Object { [int]($_ -split '\.')[-1] } -Descending)
-    if (-not $versions) { throw "python.org khong liet ke ban $WANT nao" }
+    if (-not $versions) { throw "python.org lists no $WANT release" }
     $suffix = if ([Environment]::Is64BitOperatingSystem) { "-amd64" } else { "" }
 
     # Newest is not the same as newest-with-an-installer. Once a minor version
@@ -98,9 +98,9 @@ try {
         try { $null = Invoke-WebRequest $url -Method Head -UseBasicParsing -TimeoutSec 60 }
         catch { continue }
         $exe = Join-Path $env:TEMP "python-$version$suffix.exe"
-        Say "tai $version"
+        Say "downloading $version"
         Invoke-WebRequest $url -OutFile $exe -UseBasicParsing -TimeoutSec 900
-        Say "cai (chi cho tai khoan nay)"
+        Say "installing (this account only)"
         # InstallAllUsers=0 with InstallLauncherAllUsers=0 is what keeps this
         # clear of the elevation prompt.
         $p = Start-Process $exe -Wait -PassThru -ArgumentList @(
@@ -109,20 +109,20 @@ try {
         )
         Remove-Item $exe -ErrorAction SilentlyContinue
         if ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010) { $ok = $true }
-        else { Say "bo cai bao exit $($p.ExitCode)" }
+        else { Say "the installer returned exit $($p.ExitCode)" }
         break
     }
-    if (-not $ok) { Say "khong tim duoc installer $WANT cho may nay" }
+    if (-not $ok) { Say "no $WANT installer found for this machine" }
 } catch {
-    Say "python.org khong xong: $($_.Exception.Message)"
+    Say "python.org route failed: $($_.Exception.Message)"
 }
 
 $have = Get-Usable
 if ($have) { Write-Output $have; exit 0 }
 
 Say ""
-Say "Van chua co Python. Cai tay roi chay lai Install.cmd:"
+Say "Still no Python. Install it by hand, then run Install.cmd again:"
 Say "   winget install Python.Python.$WANT --scope user"
-Say "hoac tai o python.org, khi cai tick 'Add python.exe to PATH'"
-Say "va chon 'Install for me only'."
+Say "or download from python.org, ticking 'Add python.exe to PATH'"
+Say "and choosing 'Install for me only'."
 exit 1

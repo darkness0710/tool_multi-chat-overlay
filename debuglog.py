@@ -33,6 +33,8 @@ import sys
 import time
 import traceback
 
+from i18n import t
+
 CAP = 2 * 1024 * 1024           # events only, so this is already generous
 
 _fh = None
@@ -55,8 +57,9 @@ def _raw(text):
         _written += len(text)
         if _written >= CAP:
             _capped = True
-            _fh.write(f"\n[{_stamp()}] -- log đã đạt {CAP // 1024 // 1024}MB, "
-                      f"ngừng ghi từ đây --\n")
+            _fh.write(f"\n[{_stamp()}] -- "
+                      + t("log.capped", mb=CAP // 1024 // 1024)
+                      + " --\n")
             _fh.flush()
     except Exception:
         # A log that takes the tool down with it is worse than no log: this
@@ -75,13 +78,13 @@ def _versions():
     try:
         from importlib.metadata import version, PackageNotFoundError
     except ImportError:
-        return "không đọc được"
+        return t("log.versions_unreadable")
     out = []
     for name in ("TikTokLive", "yt-dlp", "pytchat", "chat-downloader"):
         try:
             out.append(f"{name} {version(name)}")
         except PackageNotFoundError:
-            out.append(f"{name} CHƯA CÀI")
+            out.append(f"{name} " + t("log.not_installed"))
         except Exception:
             out.append(f"{name} ?")
     return ", ".join(out)
@@ -109,15 +112,18 @@ def start(path, youtube, tiktok, key=None):
         return False
 
     write(f"--- {time.strftime('%Y-%m-%d %H:%M:%S')} ---")
-    write(f"lệnh     : {' '.join(sys.argv)}")
-    write(f"python   : {sys.version.split()[0]}  ({sys.platform})")
-    write(f"thư viện : {_versions()}")
-    write(f"YouTube  : {youtube}")
-    write(f"TikTok   : {tiktok}")
+    write(t("log.command", argv=" ".join(sys.argv)))
+    write(t("log.python", version=sys.version.split()[0],
+            platform=sys.platform))
+    write(t("log.libraries", versions=_versions()))
+    write(t("log.youtube", value=youtube))
+    write(t("log.tiktok", value=tiktok))
     # Four characters is enough to tell two keys apart and not enough to be
     # one. This file gets sent to other people; that is the point of it.
-    write(f"sign key : {('có (…' + key[-4:] + ')') if key else 'KHÔNG có'}")
-    write("(chỉ ghi sự kiện và lỗi -- không ghi nội dung chat)")
+    write(t("log.sign_key",
+            state=t("log.sign_have", tail=key[-4:]) if key
+            else t("log.sign_none")))
+    write(t("log.events_only"))
     write("-" * 58)
     return True
 
@@ -132,7 +138,7 @@ def exception(where, exc):
     _raw(f"[{_stamp()}] ==== traceback ({where}) ====\n")
     _raw("".join(traceback.format_exception(type(exc), exc,
                                             exc.__traceback__)))
-    _raw(f"[{_stamp()}] ==== hết traceback ====\n")
+    _raw(f"[{_stamp()}] " + t("log.traceback_end") + "\n")
 
 
 def install_hooks():
@@ -170,9 +176,9 @@ def close(counts=None):
     if _fh is None:
         return
     if counts:
-        write("số tin nhận được: "
-              + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
-    write("--- kết thúc ---")
+        write(t("log.counts", counts=", ".join(
+            f"{k}={v}" for k, v in sorted(counts.items()))))
+    write(t("log.end"))
     try:
         _fh.close()
     except Exception:

@@ -18,22 +18,22 @@ if errorlevel 1 goto :install
 goto :run
 
 :make
-echo Tao moi truong rieng cho tool nay (lan dau, khoang 1-2 phut)...
+echo Building this tool's own environment (first run, 1-2 minutes)...
 where py >nul 2>nul
 if errorlevel 1 (python -m venv "%VENV%") else (py -3 -m venv "%VENV%")
 if not exist "%PY%" (
-  echo Khong tao duoc venv. Can Python 3 tren PATH.
+  echo Could not create the venv. Python 3 must be on PATH.
   pause
   exit /b 1
 )
 
 :install
-echo Cai thu vien...
+echo Installing libraries...
 "%PY%" -m pip install --disable-pip-version-check -q -U pip
 "%PY%" -m pip install --disable-pip-version-check -r requirements.txt
 if errorlevel 1 (
   echo.
-  echo Cai that bai. Xem thong bao o tren.
+  echo Install failed. See the messages above.
   pause
   exit /b 1
 )
